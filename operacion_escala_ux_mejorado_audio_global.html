@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Plettac: Operación Escala - Platinum Edition</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rajdhani:wght@300;400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+  <style>
+    /* --- ESTILOS VISUALES --- */
+    :root {
+      --color-bg: #050505;
+      --color-primary: #22d3ee;
+      --color-accent: #f472b6;
+      --color-success: #34d399;
+      --color-warning: #fbbf24;
+      --color-danger: #f43f5e;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: #e2e8f0;
+      font-family: 'Rajdhani', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Fondo de Rejilla Cibernética */
+    .cyber-grid {
+      background-image: 
+        linear-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34, 211, 238, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      z-index: -1;
+    }
+
+    .font-arcade { font-family: 'Press Start 2P', cursive; }
+    .font-mono { font-family: 'Share Tech Mono', monospace; }
+    .font-tech { font-family: 'Rajdhani', sans-serif; }
+
+    /* Efecto Monitor CRT (Scanlines) */
+    .crt::before {
+      content: " ";
+      display: block;
+      position: fixed;
+      top: 0; left: 0; bottom: 0; right: 0;
+      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+      z-index: 100;
+      background-size: 100% 2px, 3px 100%;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    /* Efecto Vignette para bordes oscuros */
+    .vignette {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle, transparent 60%, black 100%);
+      pointer-events: none;
+      z-index: 90;
+    }
+
+    /* Contenedor de Video */
+    .avatar-frame {
+      position: relative;
+      border: 2px solid #334155;
+      background: #0f172a;
+      box-shadow: 0 0 20px rgba(34, 211, 238, 0.1);
+      overflow: hidden;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .card-frame { aspect-ratio: 16/9; }
+    
+    .video-cover {
+        width: 100%;
+        height: 100%;
+        object-fit: cover; 
+        border: none;
+    }
+    
+    /* Botón Volver Universal */
+    .btn-back {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      z-index: 110;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'Press Start 2P', cursive;
+      font-size: 10px;
+      color: #94a3b8;
+      background: rgba(15, 23, 42, 0.9);
+      padding: 8px 12px;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      backdrop-filter: blur(4px);
+    }
+    .btn-back:hover { 
+      color: #22d3ee; 
+      border-color: #22d3ee;
+      box-shadow: 0 0 15px rgba(34, 211, 238, 0.4);
+      transform: scale(1.05);
+    }
+
+    /* Botón de Audio */
+    .btn-audio {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      z-index: 120;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 8px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+    }
+    .btn-audio:hover {
+      color: #22d3ee;
+      border-color: #22d3ee;
+      box-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+    }
+    .btn-audio.playing {
+      color: #22d3ee;
+      border-color: #22d3ee;
+      box-shadow: 0 0 15px rgba(34, 211, 238, 0.5);
+      animation: pulse-audio 2s infinite;
+    }
+
+    @keyframes pulse-audio {
+      0% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(34, 211, 238, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+    }
+
+    /* Transiciones */
+    .scene { display: none; opacity: 0; animation: fadeIn 0.6s forwards; position: relative; width: 100%; height: 100%; }
+    .scene.active { display: flex; }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); filter: blur(2px); }
+      to { opacity: 1; transform: translateY(0); filter: blur(0); }
+    }
+
+    /* Efectos de Texto */
+    .glitch { position: relative; color: white; }
+    .glitch::before, .glitch::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: #050505;
+    }
+    .glitch::before {
+      left: 2px; text-shadow: -1px 0 #f43f5e;
+      clip: rect(24px, 550px, 90px, 0);
+      animation: glitch-anim-2 3s infinite linear alternate-reverse;
+    }
+    .glitch::after {
+      left: -2px; text-shadow: -1px 0 #22d3ee;
+      clip: rect(85px, 550px, 140px, 0);
+      animation: glitch-anim 2.5s infinite linear alternate-reverse;
+    }
+    @keyframes glitch-anim {
+      0% { clip: rect(14px, 9999px, 125px, 0); }
+      100% { clip: rect(136px, 9999px, 90px, 0); }
+    }
+    @keyframes glitch-anim-2 {
+      0% { clip: rect(128px, 9999px, 54px, 0); }
+      100% { clip: rect(17px, 9999px, 30px, 0); }
+    }
+
+    /* Feedback Visual */
+    .shake-screen { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-1px, 0, 0); }
+      20%, 80% { transform: translate3d(2px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+      40%, 60% { transform: translate3d(4px, 0, 0); }
+    }
+    
+    .flash-red::after { content: ""; position: fixed; inset: 0; background: rgba(244, 63, 94, 0.3); z-index: 200; animation: flash 0.3s forwards; pointer-events: none; }
+    .flash-green::after { content: ""; position: fixed; inset: 0; background: rgba(16, 185, 129, 0.2); z-index: 200; animation: flash 0.5s forwards; pointer-events: none; }
+    @keyframes flash { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+    .cursor-blink { display: inline-block; width: 8px; height: 1.2em; background-color: var(--color-primary); animation: blink 1s step-end infinite; vertical-align: text-bottom; margin-left: 2px; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+    #particles-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; opacity: 0.6; }
+    
+    /* Modal Perfil de Agente */
+    #agent-profile-modal {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.95); z-index: 150;
+      display: none; align-items: center; justify-content: center;
+      backdrop-filter: blur(5px);
+    }
+    .agent-card-detail {
+      width: 90%; max-width: 700px;
+      background: #0f172a; border: 2px solid var(--color-primary);
+      border-radius: 10px; padding: 0; overflow: hidden;
+      position: relative; box-shadow: 0 0 50px rgba(34, 211, 238, 0.2);
+      animation: zoomIn 0.3s ease-out;
+    }
+    .agent-header { padding: 20px; background: linear-gradient(to right, #0f172a, #1e293b); border-bottom: 1px solid #334155; }
+    .agent-body { padding: 20px; }
+    
+    @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    /* Estilos para pantallas finales */
+    .stat-card {
+        background: rgba(15, 23, 42, 0.8);
+        border: 1px solid rgba(51, 65, 85, 0.5);
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+    .terminal-log {
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 12px;
+        color: #ef4444;
+        background: rgba(0,0,0,0.8);
+        padding: 15px;
+        border-radius: 4px;
+        border-left: 3px solid #ef4444;
+        height: 100%;
+        overflow-y: auto;
+    }
+    .log-line { margin-bottom: 4px; display: block; }
+
+    /* Animación Botón Mensaje */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 211, 238, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
+    }
+    .btn-message {
+      animation: pulse-ring 2s infinite;
+    }
+
+  </style>
+</head>
+<body class="h-screen w-screen flex flex-col overflow-hidden crt bg-slate-950" id="main-body">
+  
+  <audio id="intro-music" loop>
+    <source src="https://github.com/pmgriver2013-lab/operacion-escala-audio/raw/refs/heads/main/suspense-248067.mp3" type="audio/mpeg">
+  </audio>
+
+  <audio id="bg-music" loop>
+    <source src="https://github.com/pmgriver2013-lab/operacion-escala-audio/raw/refs/heads/main/suspense-248067.mp3" type="audio/mpeg">
+  </audio>
+
+  <button id="btn-audio-toggle" class="btn-audio" onclick="toggleAudio()" title="Activar/Desactivar Música">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"></path><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+  </button>
+
+  <div id="agent-profile-modal">
+    <div class="agent-card-detail">
+      <button onclick="closeAgentModal()" class="absolute top-3 right-3 text-slate-400 hover:text-white hover:scale-110 transition-transform z-50">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <div class="agent-header flex items-center gap-6">
+         <div id="modal-agent-avatar" class="w-24 h-24 rounded-full bg-slate-800 border-2 border-slate-600 overflow-hidden shadow-lg flex-shrink-0 flex items-center justify-center">
+            <span class="text-4xl">👤</span>
+         </div>
+         <div>
+            <h2 id="modal-agent-name" class="font-tech text-4xl text-white mb-1 tracking-wide">AGENTE</h2>
+            <p id="modal-agent-role" class="font-mono text-xs text-cyan-400 uppercase tracking-widest border border-cyan-500/30 inline-block px-2 py-1 rounded bg-cyan-900/20">ROL</p>
+         </div>
+      </div>
+      <div class="agent-body">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+           <div class="bg-slate-900/50 p-4 rounded border border-slate-700">
+             <h4 class="font-arcade text-[10px] text-emerald-400 mb-3 uppercase border-b border-slate-700 pb-2">KIT DE HERRAMIENTAS</h4>
+             <ul id="modal-agent-tools" class="text-sm text-slate-300 space-y-2 font-mono list-disc list-inside"></ul>
+           </div>
+           <div class="bg-slate-900/50 p-4 rounded border border-slate-700">
+             <h4 class="font-arcade text-[10px] text-violet-400 mb-3 uppercase border-b border-slate-700 pb-2">MARCO TEÓRICO</h4>
+             <ul id="modal-agent-theory" class="text-sm text-slate-300 space-y-2 font-mono list-disc list-inside"></ul>
+           </div>
+        </div>
+        <button id="btn-confirm-agent" class="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-arcade text-xs rounded transition-all shadow-[0_0_20px_rgba(8,145,178,0.4)] hover:shadow-[0_0_30px_rgba(8,145,178,0.6)] uppercase tracking-widest">CONFIRMAR AGENTE</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cyber-grid"></div>
+  <canvas id="particles-canvas"></canvas>
+  <div class="vignette"></div>
+
+  <header class="h-16 border-b border-slate-800/80 bg-slate-950/90 flex items-center justify-between px-6 z-50 shrink-0 shadow-lg backdrop-blur-sm relative">
+    <div class="flex items-center gap-4">
+      <div class="w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_#ef4444]"></div>
+      <div>
+        <h1 class="font-arcade text-[10px] md:text-xs text-cyan-400 tracking-widest leading-tight">PLETTAC ELECTRONICS</h1>
+        <p class="font-mono text-[9px] text-slate-500 tracking-wider">SIMULACIÓN DE INTERVENCIÓN</p>
+      </div>
+    </div>
+    <div id="hud" class="hidden flex gap-4 md:gap-8 font-mono text-xs text-slate-400 items-center">
+      <div class="flex flex-col items-end">
+        <span class="text-[8px] md:text-[9px] uppercase text-slate-600 tracking-widest">CONSULTOR</span>
+        <span id="hud-hero" class="text-white font-bold text-xs md:text-sm drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">---</span>
+      </div>
+      <div class="h-8 w-px bg-slate-800 mx-2"></div>
+      <div class="flex flex-col items-end hidden md:flex">
+        <span class="text-[8px] uppercase text-slate-600 tracking-widest">FASE</span>
+        <span id="hud-phase" class="text-emerald-400 font-bold">INICIO</span>
+      </div>
+      <div class="h-8 w-px bg-slate-800 mx-2 hidden md:block"></div>
+      <div class="flex flex-col w-32 md:w-48">
+        <div class="flex justify-between mb-1">
+          <span class="text-[8px] uppercase text-slate-500 tracking-widest">SINCRONIZACIÓN</span>
+          <span id="hud-score-text" class="text-[8px] text-cyan-400 font-bold">50%</span>
+        </div>
+        <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden border border-slate-700 bg-black/50">
+          <div id="hud-score-bar" class="h-full bg-gradient-to-r from-red-500 via-yellow-400 to-emerald-500 transition-all duration-500 relative" style="width: 50%">
+            <div class="absolute right-0 top-0 bottom-0 w-2 bg-white/80 blur-[2px]"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 relative flex items-center justify-center p-4 md:p-8 overflow-hidden z-10">
+    <div class="relative z-10 w-full max-w-6xl h-full flex flex-col justify-center">
+      
+      <div id="scene-title" class="scene active flex-col items-center justify-center h-full text-center space-y-12">
+        <div class="space-y-6 relative">
+          <div class="inline-block px-4 py-1 border border-cyan-500/50 rounded-full bg-cyan-900/20 mb-4 animate-pulse shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+            <p class="font-mono text-cyan-400 text-xs tracking-widest">CONFIDENCIAL // SOLO PERSONAL AUTORIZADO</p>
+          </div>
+          <h1 class="font-tech text-6xl md:text-8xl font-bold text-white tracking-tight leading-none glitch drop-shadow-xl" data-text="OPERACIÓN ESCALA">
+            OPERACIÓN<br><span class="text-cyan-400">ESCALA</span>
+          </h1>
+          <p class="font-arcade text-xs text-slate-400 tracking-[0.5em] mt-4 border-t border-slate-800 pt-6">PLETTAC ELECTRONICS ARGENTINA</p>
+        </div>
+        <button onclick="initGame()" class="group relative px-10 py-5 bg-slate-900/50 overflow-hidden rounded-lg border-2 border-white/20 hover:border-cyan-400 transition-all duration-300 shadow-[0_0_30px_rgba(0,0,0,0.5)]">
+          <div class="absolute inset-0 w-0 bg-cyan-500/20 transition-all duration-[250ms] ease-out group-hover:w-full"></div>
+          <span class="relative font-arcade text-sm text-white group-hover:text-cyan-100 group-hover:shadow-[0_0_10px_rgba(34,211,238,0.8)] transition-all">INICIAR SIMULACIÓN</span>
+        </button>
+      </div>
+
+      <div id="scene-briefing" class="scene flex-col h-full items-center justify-center relative">
+        <button onclick="changeScene('scene-title')" class="btn-back"><span>&lt;</span> INICIO</button>
+        <div class="w-full max-w-4xl grid md:grid-cols-[1fr,350px] gap-8 items-center mt-12 md:mt-0">
+          <div class="space-y-4 order-2 md:order-1">
+            <div class="avatar-frame w-full aspect-video rounded-xl bg-slate-900 border-2 border-cyan-500/50 shadow-[0_0_40px_rgba(34,211,238,0.1)] group relative overflow-hidden">
+                <iframe src="https://app.heygen.com/embedded-player/237da29f6cd140cc8303c458c655a522?autoplay=1" class="absolute inset-0 w-full h-full z-10" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen loading="lazy"></iframe>
+                <div class="absolute inset-0 z-20 pointer-events-none bg-[linear-gradient(rgba(18,16,16,0)50%,rgba(0,0,0,0.1)50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%]"></div>
+                <div class="absolute top-4 left-4 z-30 pointer-events-none flex items-center gap-2">
+                  <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_#ef4444]"></div>
+                  <span class="font-mono text-[10px] text-red-400 drop-shadow-md bg-black/60 px-1 rounded backdrop-blur-sm">REC // LIVE FEED</span>
+                </div>
+            </div>
+            <div class="data-card p-4 rounded-lg border-l-4 border-l-cyan-500 bg-slate-900/80 shadow-lg">
+              <h3 class="font-arcade text-xs text-cyan-400 mb-2">SITUACIÓN ACTUAL</h3>
+              <p class="text-sm text-slate-300 leading-relaxed">
+                "Plettac enfrenta una crisis de crecimiento. La informalidad que nos trajo hasta aquí ahora es nuestro freno. Necesitamos <span class="text-cyan-300 font-bold">congruencia sistémica</span> para escalar."
+              </p>
+            </div>
+          </div>
+          <div class="order-1 md:order-2 flex flex-col justify-center h-full space-y-6">
+            <div>
+              <h2 class="font-tech text-4xl font-bold text-white mb-2 tracking-tight">MISIÓN</h2>
+              <div class="h-1 w-20 bg-cyan-500 rounded-full shadow-[0_0_10px_#22d3ee]"></div>
+            </div>
+            <ul class="space-y-4 font-mono text-sm text-slate-300">
+              <li class="flex items-start gap-3 group"><span class="text-cyan-500 group-hover:text-white transition-colors">01.</span> Diagnosticar la Estructura.</li>
+              <li class="flex items-start gap-3 group"><span class="text-cyan-500 group-hover:text-white transition-colors">02.</span> Destrabar el Talento.</li>
+              <li class="flex items-start gap-3 group"><span class="text-cyan-500 group-hover:text-white transition-colors">03.</span> Sanar la Cultura.</li>
+            </ul>
+            <button onclick="changeScene('scene-select')" class="w-full py-4 bg-white text-black font-arcade text-xs hover:bg-cyan-300 hover:shadow-[0_0_20px_rgba(34,211,238,0.6)] transition-all rounded mt-4 transform hover:-translate-y-1">ELEGIR AGENTE >></button>
+          </div>
+        </div>
+      </div>
+
+      <div id="scene-select" class="scene flex-col h-full justify-center relative">
+        <button onclick="changeScene('scene-briefing')" class="btn-back"><span>&lt;</span> VOLVER</button>
+        <header class="mb-8 text-center mt-12 md:mt-0">
+          <h2 class="font-arcade text-xs text-slate-500 mb-2 tracking-widest">CONFIGURACIÓN DE PARTIDA</h2>
+          <p class="font-tech text-3xl md:text-4xl text-white">Elige tu Especialista</p>
+        </header>
+        <div class="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto w-full px-4">
+          <div class="group cursor-pointer transform transition hover:-translate-y-2 duration-300" onclick="showAgentProfile('arquitecta')">
+            <div class="avatar-frame card-frame w-full rounded-t-xl bg-slate-800 group-hover:border-sky-400 relative border-b-0 overflow-hidden shadow-lg group-hover:shadow-sky-500/20">
+              <div class="absolute inset-0 w-full h-full z-10 bg-black">
+                 <iframe src="https://app.heygen.com/embedded-player/d49f1d0c7b3d4fc598021cf46d6a38eb" class="video-cover" frameborder="0" allowfullscreen></iframe>
+              </div>
+              <div class="absolute inset-0 z-20 pointer-events-none bg-gradient-to-t from-slate-900/90 via-transparent to-transparent"></div>
+              <div class="absolute top-2 right-2 z-30 bg-sky-900/90 text-sky-300 text-[9px] px-2 py-0.5 rounded border border-sky-500/30 font-mono backdrop-blur-md">ESTRUCTURA</div>
+            </div>
+            <div class="data-card p-5 rounded-b-xl border-t-0 border-sky-500/30 bg-gradient-to-b from-slate-900 to-slate-950 group-hover:bg-slate-900 transition-colors">
+              <h3 class="font-tech text-xl font-bold text-white mb-1 group-hover:text-sky-400 transition-colors">La Arquitecta</h3>
+              <p class="text-xs text-slate-400 mb-3 italic">"El diseño define el comportamiento."</p>
+            </div>
+          </div>
+          <div class="group cursor-pointer transform transition hover:-translate-y-2 duration-300" onclick="showAgentProfile('coach')">
+            <div class="avatar-frame card-frame w-full rounded-t-xl bg-slate-800 group-hover:border-violet-400 relative border-b-0 overflow-hidden shadow-lg group-hover:shadow-violet-500/20">
+               <div class="absolute inset-0 w-full h-full z-10 bg-black">
+                  <iframe src="https://app.heygen.com/embedded-player/8859eeb5d7954e4984fec5d755c12e74?autoplay=1&loop=1&controls=0" class="video-cover" frameborder="0" allowfullscreen></iframe>
+               </div>
+               <div class="absolute top-2 right-2 z-30 bg-violet-900/80 text-violet-300 text-[9px] px-2 py-0.5 rounded border border-violet-500/30 backdrop-blur-md">LIDERAZGO</div>
+            </div>
+            <div class="data-card p-5 rounded-b-xl border-t-0 border-violet-500/30 bg-gradient-to-b from-slate-900 to-slate-950 group-hover:bg-slate-900 transition-colors">
+              <h3 class="font-tech text-xl font-bold text-white mb-1 group-hover:text-violet-400 transition-colors">El Coach</h3>
+              <p class="text-xs text-slate-400 mb-3 italic">"El cambio ocurre en las personas."</p>
+            </div>
+          </div>
+          <div class="group cursor-pointer transform transition hover:-translate-y-2 duration-300" onclick="showAgentProfile('guardiana')">
+            <div class="avatar-frame card-frame w-full rounded-t-xl bg-slate-800 group-hover:border-amber-400 relative border-b-0 overflow-hidden shadow-lg group-hover:shadow-amber-500/20">
+               <div class="absolute inset-0 w-full h-full z-10 bg-black">
+                  <iframe src="https://app.heygen.com/embedded-player/5598765ecb5b4192a1ed5071b87d1b6f?autoplay=1&loop=1&controls=0" class="video-cover" frameborder="0" allowfullscreen></iframe>
+               </div>
+               <div class="absolute top-2 right-2 z-30 bg-amber-900/80 text-amber-300 text-[9px] px-2 py-0.5 rounded border border-amber-500/30 backdrop-blur-md">CULTURA</div>
+            </div>
+            <div class="data-card p-5 rounded-b-xl border-t-0 border-amber-500/30 bg-gradient-to-b from-slate-900 to-slate-950 group-hover:bg-slate-900 transition-colors">
+              <h3 class="font-tech text-xl font-bold text-white mb-1 group-hover:text-amber-400 transition-colors">La Guardiana</h3>
+              <p class="text-xs text-slate-400 mb-3 italic">"La cultura se desayuna a la estrategia."</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="scene-nudo" class="scene flex-col h-full justify-center relative">
+        <button onclick="changeScene('scene-select')" class="btn-back text-rose-400 hover:text-rose-300 border-rose-900/50"><span>X</span> ABORTAR</button>
+        <div class="w-full max-w-7xl mx-auto grid lg:grid-cols-[1.2fr,1fr] gap-8 h-full items-center p-4 mt-12 md:mt-0">
+          <div class="flex flex-col justify-center space-y-6 h-full relative">
+            <div class="flex items-center gap-3 border-b border-slate-800 pb-2">
+              <div id="level-badge" class="px-2 py-1 bg-slate-800 rounded border border-slate-700 text-[10px] font-arcade text-white uppercase shadow">NIVEL</div>
+              <h3 id="level-title" class="font-tech text-2xl font-bold text-white tracking-wide">...</h3>
+            </div>
+            <div id="nudo-video-frame" class="avatar-frame w-full rounded-xl border-2 border-slate-700 shadow-[0_0_40px_rgba(0,0,0,0.6)] bg-black group relative overflow-hidden aspect-video">
+                <iframe id="nudo-iframe" class="video-cover absolute inset-0 w-full h-full z-10" src="" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+                <div class="absolute inset-0 z-20 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay"></div>
+            </div>
+            <div class="bg-slate-900/80 border-l-4 border-slate-600 p-5 rounded-r-lg backdrop-blur-md shadow-lg h-auto min-h-[100px]">
+              <p id="nudo-text" class="text-base text-slate-200 leading-relaxed font-light font-mono"></p>
+            </div>
+          </div>
+          <div class="flex flex-col justify-center h-full pl-4 lg:border-l border-slate-800">
+            <h3 class="font-arcade text-[10px] text-yellow-400 mb-6 uppercase tracking-widest text-center lg:text-left animate-pulse">// PROTOCOLO DE DECISIÓN</h3>
+            <div id="decision-buttons" class="space-y-4"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="scene-resolution" class="scene flex-col h-full justify-center items-center relative">
+        <button onclick="changeScene('scene-nudo')" class="btn-back border-yellow-900 text-yellow-500 hover:text-yellow-300"><span>&#8634;</span> RECONSIDERAR</button>
+        <div class="w-full max-w-5xl bg-slate-900/95 border-2 border-slate-700 rounded-2xl p-8 md:p-10 relative overflow-hidden shadow-[0_0_60px_rgba(0,0,0,0.5)] mt-12 md:mt-0" id="resolution-box">
+          <div class="grid md:grid-cols-[350px,1fr] gap-10 items-center relative z-10">
+            <div class="relative">
+              <div class="avatar-frame rounded-lg bg-black border-2 border-slate-700 flex items-center justify-center shadow-lg overflow-hidden aspect-video">
+                <iframe id="res-iframe" class="video-cover" src="" frameborder="0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+              </div>
+              <div id="res-badge" class="absolute -top-3 -right-3 bg-slate-700 text-white font-arcade text-[9px] px-3 py-1 rounded border border-slate-500 shadow-lg uppercase z-20">...</div>
+            </div>
+            <div class="flex flex-col justify-center space-y-6">
+              <div>
+                <p class="font-arcade text-[10px] text-slate-500 mb-1 uppercase tracking-widest">ANÁLISIS DE IMPACTO</p>
+                <h2 id="res-title" class="font-tech text-3xl md:text-5xl font-bold text-white mb-4 leading-tight drop-shadow-lg">...</h2>
+                <p id="res-desc" class="text-base md:text-lg text-slate-300 leading-relaxed font-light border-l-2 border-slate-700 pl-4">...</p>
+              </div>
+              <div class="bg-black/30 border border-slate-700 p-4 rounded-lg flex gap-4 items-start">
+                <span class="text-2xl">💡</span>
+                <div><span class="text-[10px] font-arcade text-slate-400 uppercase block mb-1">FUNDAMENTO TEÓRICO</span><p id="res-concept" class="text-sm text-white font-bold font-mono">...</p></div>
+              </div>
+              <div class="pt-4 flex gap-4">
+                <button id="btn-next-phase" class="hidden px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-emerald-600 text-emerald-400 font-arcade text-[10px] rounded shadow transition-all transform hover:scale-105">CONTINUAR >></button>
+                <button id="btn-retry" class="hidden px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-rose-600 text-rose-400 font-arcade text-[10px] rounded shadow transition-all transform hover:scale-105">REINTENTAR NIVEL</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="scene-victory" class="scene flex-col h-full justify-center items-center text-center p-6 relative">
+        <button onclick="location.reload()" class="btn-back border-emerald-900 text-emerald-500 hover:text-emerald-300"><span>&lt;</span> MENÚ</button>
+        
+        <div class="w-full max-w-6xl grid md:grid-cols-[1fr,1fr] gap-8 items-center mt-10">
+          
+          <div class="avatar-frame w-full aspect-video rounded-lg bg-black border-2 border-emerald-500 shadow-[0_0_50px_rgba(16,185,129,0.3)] relative overflow-hidden flex items-center justify-center">
+              
+  <!-- SOBRE / MENSAJE (estado inicial) -->
+  <div
+    id="victory-envelope"
+    class="flex flex-col items-center justify-center w-full h-full bg-slate-900 p-6 text-center relative z-20 transition-all duration-700 ease-out transform"
+  >
+    <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none"></div>
+
+    <div class="w-20 h-20 mb-6 rounded-full border border-emerald-400 bg-emerald-900/20 shadow-[0_0_20px_rgba(16,185,129,0.3)] animate-pulse flex items-center justify-center">
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" class="text-emerald-400">
+        <rect width="20" height="16" x="2" y="4" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"></rect>
+        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" fill="none" stroke="currentColor" stroke-width="2"></path>
+      </svg>
+    </div>
+
+    <h3 class="font-tech text-3xl text-white mb-2 tracking-wider">MENSAJE DEL EQUIPO</h3>
+    <p class="font-mono text-xs text-emerald-400 mb-4 max-w-md mx-auto">
+      La Dirección ha enviado un reporte de situación. Acceso exclusivo para el agente en campo.
+    </p>
+
+    <!-- BOTÓN QUE ABRE EL VIDEO -->
+    <button
+      type="button"
+      onclick="openVictoryMessage()"
+      class="btn-message mt-4 inline-flex items-center gap-2 px-5 py-3 bg-emerald-500/20 text-emerald-100 font-arcade text-xs rounded border border-emerald-400 hover:bg-emerald-500/40 hover:border-emerald-300 hover:shadow-[0_0_20px_rgba(16,185,129,0.6)] transition-all shadow-lg no-underline"
+    >
+      <span>VER TRANSMISIÓN</span>
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="text-emerald-300" viewBox="0 0 24 24">
+        <polyline points="7 17 17 7" fill="none" stroke="currentColor" stroke-width="2"></polyline>
+        <polyline points="7 7 17 7 17 17" fill="none" stroke="currentColor" stroke-width="2"></polyline>
+      </svg>
+    </button>
+  </div>
+
+  <!-- CAPA DE VIDEO (INICIALMENTE OCULTA) -->
+  <div
+    id="victory-video-layer"
+    class="absolute inset-0 flex items-center justify-center bg-black/90 opacity-0 scale-90 pointer-events-none transition-all duration-700 ease-out transform z-10"
+  >
+    <video
+      id="victory-video"
+      class="w-full h-full object-contain rounded-lg shadow-2xl"
+      controls
+      preload="metadata"
+    >
+      <source src="https://github.com/pmgriver2013-lab/operacion-escala-audio/raw/refs/heads/main/video%20win.mp4" type="video/mp4">
+      Tu navegador no soporta la reproducción de video.
+    </video>
+  </div>
+
+  <!-- BORDE BRILLANTE -->
+  <div class="absolute inset-0 pointer-events-none border-4 border-emerald-500/30 rounded-lg z-30"></div>
+</div>
+
+<div class="bg-slate-900/95 border border-emerald-500/50 rounded-xl p-8 text-left relative overflow-hidden h-full flex flex-col justify-center">
+            <div class="absolute top-4 right-4 transform rotate-12 border-4 border-emerald-500 text-emerald-500 font-arcade text-xs px-4 py-2 opacity-50">CONFIDENCIAL</div>
+            
+            <h2 class="font-tech text-5xl font-bold text-white mb-2 text-glow">MISIÓN CUMPLIDA</h2>
+            <p class="font-arcade text-emerald-400 text-xs mb-8 border-b border-emerald-900 pb-4">PLETTAC ELECT. >> ESTABILIZADA</p>
+            
+            <div class="space-y-6 mb-8">
+              <div>
+                <h4 class="font-mono text-xs text-slate-500 uppercase tracking-widest mb-2">RENDIMIENTO FINAL</h4>
+                <div class="text-4xl font-bold text-white flex items-baseline gap-2">
+                  <span id="final-score">100</span><span class="text-lg text-emerald-500">%</span>
+                </div>
+              </div>
+              
+              <div>
+                <h4 class="font-mono text-xs text-slate-500 uppercase tracking-widest mb-3">LOGROS DESBLOQUEADOS</h4>
+                <div class="flex flex-wrap gap-2">
+                  <span class="px-2 py-1 bg-emerald-900/30 border border-emerald-700 text-emerald-300 text-[10px] rounded font-mono">RASI Operativa</span>
+                  <span class="px-2 py-1 bg-purple-900/30 border border-purple-700 text-purple-300 text-[10px] rounded font-mono">Pipeline de Liderazgo</span>
+                  <span class="px-2 py-1 bg-amber-900/30 border border-amber-700 text-amber-300 text-[10px] rounded font-mono">Seguridad Psicológica</span>
+                </div>
+              </div>
+            </div>
+            
+            <button onclick="location.reload()" class="w-full py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-arcade text-xs rounded shadow-lg transition-all">CERRAR DOSSIER</button>
+          </div>
+        </div>
+      </div>
+      
+      <div id="scene-gameover" class="scene flex-col h-full justify-center items-center text-center p-6 relative">
+         <button onclick="location.reload()" class="btn-back border-rose-900 text-rose-500 hover:text-rose-300"><span>&lt;</span> MENÚ</button>
+         
+         <div class="w-full max-w-6xl grid md:grid-cols-[1fr,1fr] gap-8 items-center mt-10">
+            
+            <div class="avatar-frame w-full aspect-video rounded-lg bg-black border-2 border-rose-600 shadow-[0_0_50px_rgba(225,29,72,0.3)] relative overflow-hidden flex items-center justify-center">
+                
+  <!-- SOBRE / MENSAJE (estado inicial) -->
+  <div
+    id="gameover-envelope"
+    class="flex flex-col items-center justify-center w-full h-full bg-slate-950 p-6 text-center relative z-20 transition-all duration-700 ease-out transform"
+  >
+    <div class="absolute inset-0 bg-red-900/20 opacity-20 pointer-events-none"></div>
+
+    <div class="w-20 h-20 mb-6 rounded-full border border-rose-400 bg-rose-900/30 shadow-[0_0_20px_rgba(225,29,72,0.4)] animate-bounce flex items-center justify-center">
+      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" class="text-rose-400" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"></circle>
+        <line x1="12" y1="9" x2="12" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"></line>
+        <circle cx="12" cy="17" r="1" fill="currentColor"></circle>
+      </svg>
+    </div>
+
+    <h3 class="font-tech text-3xl text-white mb-2 tracking-wider">MENSAJE DEL SISTEMA</h3>
+    <p class="font-mono text-xs text-rose-400 mb-4 max-w-md mx-auto">
+      Fallo crítico detectado. El sistema ha generado un reporte de colapso.
+    </p>
+
+    <!-- BOTÓN QUE ABRE EL VIDEO -->
+    <button
+      type="button"
+      onclick="openGameoverMessage()"
+      class="btn-message mt-4 inline-flex items-center gap-2 px-5 py-3 bg-rose-500/20 text-rose-100 font-arcade text-xs rounded border border-rose-400 hover:bg-rose-500/40 hover:border-rose-300 hover:shadow-[0_0_20px_rgba(225,29,72,0.6)] transition-all shadow-lg no-underline"
+    >
+      <span>ABRIR REPORTE</span>
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="text-rose-200" viewBox="0 0 24 24">
+        <polyline points="7 17 17 7" fill="none" stroke="currentColor" stroke-width="2"></polyline>
+        <polyline points="7 7 17 7 17 17" fill="none" stroke="currentColor" stroke-width="2"></polyline>
+      </svg>
+    </button>
+  </div>
+
+  <!-- CAPA DE VIDEO (INICIALMENTE OCULTA) -->
+  <div
+    id="gameover-video-layer"
+    class="absolute inset-0 flex items-center justify-center bg-black/90 opacity-0 scale-90 pointer-events-none transition-all duration-700 ease-out transform z-10"
+  >
+    <video
+      id="gameover-video"
+      class="w-full h-full object-contain rounded-lg shadow-2xl"
+      controls
+      preload="metadata"
+    >
+      <source src="https://github.com/pmgriver2013-lab/operacion-escala-audio/raw/refs/heads/main/grok-video-f9b5ddc9-1b67-4a10-baa5-6a2004276dc0-0.mp4" type="video/mp4">
+      Tu navegador no soporta la reproducción de video.
+    </video>
+  </div>
+
+  <!-- CAPA ROJA / BRILLO -->
+  <div class="absolute inset-0 bg-rose-900/20 mix-blend-overlay pointer-events-none z-30"></div>
+</div>
+
+<div class="bg-black border border-rose-600 rounded-xl p-0 overflow-hidden h-full flex flex-col relative">
+               <div class="bg-rose-900/20 p-3 border-b border-rose-900 flex justify-between items-center">
+                 <span class="font-arcade text-[10px] text-rose-500">SYSTEM FAILURE</span>
+                 <div class="w-3 h-3 bg-rose-500 rounded-full animate-pulse"></div>
+               </div>
+               
+               <div class="terminal-log p-6 flex-1 text-left font-mono text-xs text-rose-400 leading-relaxed space-y-2">
+                 <p>> INICIANDO DIAGNÓSTICO DE FALLO...</p>
+                 <p>> ERROR CRÍTICO: DESCOORDINACIÓN SISTÉMICA.</p>
+                 <p>> CULTURA: TÓXICA [DETECTADO].</p>
+                 <p>> ESTRUCTURA: COLAPSADA.</p>
+                 <p class="text-white mt-4">ANÁLISIS: La crisis de crecimiento superó la capacidad de gestión. Se priorizó el control sobre la agilidad.</p>
+                 <p class="mt-4">> RECOMENDACIÓN: REINICIAR SIMULACIÓN.</p>
+                 <span class="cursor-blink bg-rose-500"></span>
+               </div>
+               
+               <button onclick="location.reload()" class="w-full py-4 bg-rose-700 hover:bg-rose-600 text-white font-arcade text-xs transition-all border-t border-rose-500">REINTENTAR</button>
+            </div>
+         </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    /* ... SISTEMA DE PARTÍCULAS ... */
+    const canvas = document.getElementById('particles-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    let particles = [];
+    const particleCount = 40;
+    class Particle {
+        constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.vx = (Math.random() - 0.5) * 0.5;
+            this.vy = (Math.random() - 0.5) * 0.5;
+            this.size = Math.random() * 2;
+            this.alpha = Math.random() * 0.5 + 0.1;
+        }
+        update() {
+            this.x += this.vx;
+            this.y += this.vy;
+            if(this.x < 0) this.x = canvas.width;
+            if(this.x > canvas.width) this.x = 0;
+            if(this.y < 0) this.y = canvas.height;
+            if(this.y > canvas.height) this.y = 0;
+        }
+        draw() {
+            ctx.fillStyle = `rgba(34, 211, 238, ${this.alpha})`;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    for(let i=0; i<particleCount; i++) particles.push(new Particle());
+    function animateParticles() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => { p.update(); p.draw(); });
+        requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+    window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+    /* ... LÓGICA DEL JUEGO ... */
+    const characters = {
+      arquitecta: { 
+          name: 'La Arquitecta', 
+          role: 'Especialista en Diseño Organizacional',
+          colorClass: 'text-sky-400',
+          tools: ['Matriz RASI', 'Mapeo de Procesos', 'Rediseño Estructural', 'Sistemas de Control'],
+          theory: ['Mintzberg: Estructura en 5', 'Galbraith: Diseño de la Organización', 'Weber: Burocracia y Racionalización']
+      },
+      coach: { 
+          name: 'El Coach', 
+          role: 'Experto en Desarrollo de Talento',
+          colorClass: 'text-violet-400',
+          tools: ['Feedback 360', 'Coaching Ontológico', 'Mentoring', 'Gestión del Desempeño'],
+          theory: ['Goleman: Inteligencia Emocional', 'Hersey & Blanchard: Liderazgo Situacional', 'Maslow: Jerarquía de Necesidades']
+      },
+      guardiana: { 
+          name: 'La Guardiana', 
+          role: 'Estratega de Cultura y Cambio',
+          colorClass: 'text-amber-400',
+          tools: ['Diagnóstico de Cultura', 'Gestión del Cambio (Kotter)', 'Rituales Corporativos', 'Comunicación Interna'],
+          theory: ['Schein: Cultura y Liderazgo', 'Lewin: Modelo de Cambio', 'Hofstede: Dimensiones Culturales']
+      }
+    };
+
+    // BASE DE DATOS DE NIVELES
+    const levels = [
+      {
+        id: "estructura",
+        phaseName: "NIVEL 1: ESTRUCTURA",
+        videoUrl: {
+          arquitecta: "https://app.heygen.com/embedded-player/b4f3ef94c2754406beafa05b667fd557",
+          coach: "https://app.heygen.com/embedded-player/de7373b2b9864014a15959e614c37bb3",
+          guardiana: "https://app.heygen.com/embedded-player/a4ad4a7dc8504e90a23a799f87fc24ef"
+        },
+        themeColor: "text-sky-400",
+        nudo: {
+          title: "EL LABERINTO DE DECISIONES",
+          text: "Las sucursales están paralizadas. Cada compra, cada viático, rebota a Casa Central. Existe una 'ilusión de control' que genera parálisis. ¿Cómo intervenimos en la estructura para destrabar esto?",
+          options: [
+            { 
+              text: "Dibujar un organigrama detallado de toda la empresa.", 
+              type: "neutro",
+              feedbackTitle: "MAPA SIN TERRITORIO",
+              feedbackText: "El organigrama ayuda visualmente, pero no resuelve el flujo de poder real. Es un cambio cosmético. Los cuellos de botella persisten porque no cambiaste quién decide.",
+              concept: "Estructura vs. Procesos: El dibujo no es la dinámica."
+            },
+            { 
+              text: "Implementar Matriz RASI para 3 decisiones críticas.", 
+              type: "bueno",
+              feedbackTitle: "CLARIDAD OPERATIVA",
+              feedbackText: "¡Correcto! Al definir quién es Responsable y quién Aprueba, liberaste a la gerencia de la micro-gestión. Esto es 'Formalización Mínima Crítica': reglas claras solo donde importa.",
+              concept: "Matriz RASI: Responsable, Aprobador, Soporte, Informado."
+            },
+            { 
+              text: "Centralizar todo en mí para evitar errores.", 
+              type: "malo",
+              feedbackTitle: "CUELLO DE BOTELLA FATAL",
+              feedbackText: "Intentaste controlar el caos centralizando más. Te convertiste en el tapón del crecimiento. Las sucursales perdieron autonomía y la velocidad de respuesta cayó un 40%.",
+              concept: "Crisis de Crecimiento: La centralización no escala."
+            }
+          ]
+        }
+      },
+      {
+        id: "coordinacion",
+        phaseName: "NIVEL 2: COORDINACIÓN",
+        videoUrl: {
+          arquitecta: "https://app.heygen.com/embedded-player/e20a2ea7cf1a4bed920b6d22da7a1309",
+          coach: "https://app.heygen.com/embedded-player/9068928af9ab4ca282f4292468e60328",
+          guardiana: "https://app.heygen.com/embedded-player/7b3b24313f304117b49836d5a9549809"
+        },
+        themeColor: "text-emerald-400",
+        nudo: {
+          title: "ISLAS INCOMUNICADAS",
+          text: "Ventas vende proyectos que Operaciones no puede cumplir. Cada área es una isla y la información no fluye lateralmente.",
+          options: [
+            { 
+              text: "Enviar más emails con copia a todos.", 
+              type: "malo", 
+              feedbackTitle: "RUIDO DIGITAL", 
+              feedbackText: "Nadie lee nada importante. La información crítica se pierde en cadenas interminables de correos.", 
+              concept: "Sobrecarga de información y pérdida de foco."
+            },
+            { 
+              text: "Instaurar 'Rituales de Sincronización' semanales.", 
+              type: "bueno", 
+              feedbackTitle: "ALINEACIÓN TÁCTICA", 
+              feedbackText: "Reuniones cortas, con agenda clara, donde las áreas coordinan antes de que los problemas exploten. Disminuye el retrabajo y mejora la coordinación lateral.", 
+              concept: "Coordinación lateral y mecanismos de enlace."
+            },
+            { 
+              text: "Contratar un coordinador de mensajes.", 
+              type: "neutro", 
+              feedbackTitle: "PARCHE TEMPORAL", 
+              feedbackText: "Creaste un 'teléfono descompuesto' humano. Mejora un poco la comunicación, pero no resuelve la fragmentación de base.", 
+              concept: "Intermediación ineficiente y rol mal definido."
+            }
+          ]
+        }
+      },
+      {
+        id: "procesos",
+        phaseName: "NIVEL 3: PROCESOS",
+        videoUrl: {
+          arquitecta: "https://app.heygen.com/embedded-player/ef99db03555d40a195a0d97f594e8c5f",
+          coach: "https://app.heygen.com/embedded-player/49dc15f4133c4097854660a057c1e643",
+          guardiana: "https://app.heygen.com/embedded-player/f4d21e030e15432aaf63478083772e85"
+        },
+        themeColor: "text-sky-400",
+        nudo: {
+          title: "EL HÉROE INDISPENSABLE",
+          text: "Solo 'Juan' sabe configurar el servidor. Si Juan se enferma, la empresa para. Dependemos del conocimiento concentrado en una sola persona.",
+          options: [
+            { 
+              text: "Documentar SOPs simples de procesos clave.", 
+              type: "bueno", 
+              feedbackTitle: "CONOCIMIENTO ESCALABLE", 
+              feedbackText: "Convertiste el saber individual en procedimientos básicos. Otros pueden ejecutar sin depender exclusivamente de la memoria de Juan.", 
+              concept: "Estandarización mínima y transferencia de conocimiento."
+            },
+            { 
+              text: "Subirle el sueldo a Juan.", 
+              type: "neutro", 
+              feedbackTitle: "RETENCIÓN FORZADA", 
+              feedbackText: "Juan se queda, pero la vulnerabilidad sistémica sigue igual. El riesgo se mantiene concentrado en una sola persona.", 
+              concept: "Retención sin gestión del conocimiento."
+            },
+            { 
+              text: "Dejar que cada uno trabaje a su manera.", 
+              type: "malo", 
+              feedbackTitle: "CAOS TÉCNICO", 
+              feedbackText: "Cada intervención es distinta. El mantenimiento se vuelve impredecible y la variabilidad aumenta los errores.", 
+              concept: "Ausencia de estándares y aumento de la variabilidad."
+            }
+          ]
+        }
+      },
+      {
+        id: "talento",
+        phaseName: "NIVEL 4: TALENTO",
+        videoUrl: {
+          arquitecta: "https://app.heygen.com/embedded-player/e317b81c0b5e4b04956c198dd500e429",
+          coach: "https://app.heygen.com/embedded-player/70faf120cf3841348beddc7631265d69",
+          guardiana: "https://app.heygen.com/embedded-player/0e5d2c926e59458eb6028f0cd8db56c0"
+        },
+        themeColor: "text-violet-400",
+        nudo: {
+          title: "LA TRAMPA DEL TÉCNICO",
+          text: "Promovimos a los mejores ingenieros a jefes. Ahora están sufriendo. Siguen haciendo trabajo técnico y no delegan.",
+          options: [
+            { 
+              text: "Curso de liderazgo de 2 días.", 
+              type: "neutro", 
+              feedbackTitle: "TEORÍA SIN PRÁCTICA", 
+              feedbackText: "El curso aporta conceptos, pero al primer incendio volvieron a su zona de confort técnica. No hubo acompañamiento en el rol.", 
+              concept: "Brecha entre saber y hacer (know-do gap)."
+            },
+            { 
+              text: "Diseñar 'Recorrido de Líderes' con mentoreo.", 
+              type: "bueno", 
+              feedbackTitle: "TRANSICIÓN EXITOSA", 
+              feedbackText: "El rol de liderazgo se trabaja como una nueva profesión. Con mentores y espacios de práctica, dejan de ser 'técnicos ascendidos' para convertirse en jefes que gestionan personas.", 
+              concept: "Pipeline de liderazgo y desarrollo de mandos medios."
+            },
+            { 
+              text: "Devolverlos a técnicos.", 
+              type: "malo", 
+              feedbackTitle: "VACÍO DE PODER", 
+              feedbackText: "Resuelves la urgencia técnica, pero renuncias a construir mandos medios. El sistema queda sin figuras puente para el crecimiento futuro.", 
+              concept: "Fuga de talento en roles críticos."
+            }
+          ]
+        }
+      },
+      {
+        id: "cultura",
+        phaseName: "NIVEL 5: CULTURA",
+        videoUrl: {
+          arquitecta: "https://app.heygen.com/embedded-player/8b368d3532ee4d4fb83a0249b2bda51f",
+          coach: "https://app.heygen.com/embedded-player/35417f4030c542bc80a883e99551bdf4",
+          guardiana: "https://app.heygen.com/embedded-player/4f4918685865461bb0feb95b51f2c554"
+        },
+        themeColor: "text-amber-400",
+        nudo: {
+          title: "EL SILENCIO DEL ERROR",
+          text: "Hubo una falla crítica y nadie avisó por miedo. En los pasillos dicen: 'El que avisa, tiene consecuencias'.",
+          options: [
+            { 
+              text: "Reunión para decir 'aquí no se castiga'.", 
+              type: "neutro", 
+              feedbackTitle: "DISONANCIA", 
+              feedbackText: "El discurso cambia, pero los indicadores y las reacciones reales no. El equipo percibe la distancia entre lo dicho y lo hecho.", 
+              concept: "Valores declarados vs. valores en uso (Schein)."
+            },
+            { 
+              text: "Despedir al que ocultó el error.", 
+              type: "malo", 
+              feedbackTitle: "LEY DEL SILENCIO", 
+              feedbackText: "Refuerzas la idea de que hablar tiene costo. Aumenta el ocultamiento y el riesgo sistémico.", 
+              concept: "Seguridad psicológica y cultura del miedo."
+            },
+            { 
+              text: "Instaurar 'Revisión de Aprendizaje sin Culpa'.", 
+              type: "bueno", 
+              feedbackTitle: "CULTURA DE APRENDIZAJE", 
+              feedbackText: "El foco se pone en los procesos y no en la persona. Se investiga la falla sistémica y se aprende del error en lugar de castigarlo.", 
+              concept: "Aprendizaje organizacional y revisión de supuestos."
+            }
+          ]
+        }
+      }
+    ];
+
+    // 🎥 Videos de resolución
+    const resolutionVideos = {
+      arquitecta: {
+        1: { A: "https://app.heygen.com/embedded-player/2511796516e04ea0999f979e3a09ff9c", B: "https://app.heygen.com/embedded-player/76ee2ffa8aa64ccebc8dd73607a3d589", C: "https://app.heygen.com/embedded-player/869000919c694e5da8aa878c9e5c2f95" },
+        2: { A: "https://app.heygen.com/embedded-player/732a8edd00c34562a15bf5b67774a790", B: "https://app.heygen.com/embedded-player/e16cc2d5d26d48ac8cde4f5a186b4762", C: "https://app.heygen.com/embedded-player/f9ca1f440b584edda00e954eaf63db54" },
+        3: { A: "https://app.heygen.com/embedded-player/4ad8fce2640748958932019b122b6059", B: "https://app.heygen.com/embedded-player/d88b155c49f141d88705a33d6070d793", C: "https://app.heygen.com/embedded-player/f8094ff32eea48d89e5c7d9a6fd56c42" },
+        4: { A: "https://app.heygen.com/embedded-player/867083e66a504a109eab8deb5c36b495", B: "https://app.heygen.com/embedded-player/5d93dfea23984f52bf2a3c79e171ed39", C: "https://app.heygen.com/embedded-player/605fcb74c92e407a88d01d2a813499ed" },
+        5: { A: "https://app.heygen.com/embedded-player/aef52466c5f0468f9ce3a7206318c6d2", B: "https://app.heygen.com/embedded-player/38fdbc3139bd40d6b4c65e799bf23b38", C: "https://app.heygen.com/embedded-player/5af3ebdc85054c369a2c77019baa2b42" }
+      },
+      coach: {
+        1: { A: "https://app.heygen.com/embedded-player/de7373b2b9864014a15959e614c37bb3", B: "https://app.heygen.com/embedded-player/16c873fd91f54fd8900e7c4b0023e0d8", C: "https://app.heygen.com/embedded-player/4d3db0bb6dd845f091409025b5aacfa5" },
+        2: { A: "https://app.heygen.com/embedded-player/abce2840aa6d402482e9a2a64c51b3ae", B: "https://app.heygen.com/embedded-player/deb6c8ee2ab049679dcd19187f638f37", C: "https://app.heygen.com/embedded-player/9eac0ad654de4aabb6c97680f7935078" },
+        3: { A: "https://app.heygen.com/embedded-player/8662210ed71b48bdadf49ea9247e561f", B: "https://app.heygen.com/embedded-player/337ec6d3d14f4206b035b282c5adba65", C: "https://app.heygen.com/embedded-player/cf2452249af54625b443bf1466f87cb1" },
+        4: { A: "https://app.heygen.com/embedded-player/1b0fd069d26240b2b50eb8003b0bab0e", B: "https://app.heygen.com/embedded-player/b15ea31a2e524dfcacde42a743dd59ed", C: "https://app.heygen.com/embedded-player/6c97aff93e3f4783a362b68071952b9c" },
+        5: { A: "https://app.heygen.com/embedded-player/3394d8bd8b7540b086464c94eb1e9edb", B: "https://app.heygen.com/embedded-player/83650ddf70de41599c4b3462667ebd03", C: "https://app.heygen.com/embedded-player/3c181412c1b14c08abf268afab0efbe5" }
+      },
+      guardiana: {
+        1: { A: "https://app.heygen.com/embedded-player/55d5d1973f3e44e090d0d8c24eb15985", B: "https://app.heygen.com/embedded-player/5fd7ef1e384246a09837a20aa22456cf", C: "https://app.heygen.com/embedded-player/3165a6c738444c309779767fdf8702fe" },
+        2: { A: "https://app.heygen.com/embedded-player/75ff6b2924944beda17d0ca75300c57a", B: "https://app.heygen.com/embedded-player/43d784f346d5448791c95b2b63792eff", C: "https://app.heygen.com/embedded-player/c9cfa3fe25824b5c92ad096956d3a0ae" },
+        3: { A: "https://app.heygen.com/embedded-player/f9a113de665a48aa8c404e2e60bac9fe", B: "https://app.heygen.com/embedded-player/85b3d975d6db47beb3ae91367b0c1500", C: "https://app.heygen.com/embedded-player/3e514d8ef48047dd9f904bf04be35219" },
+        4: { A: "https://app.heygen.com/embedded-player/137fc5bcd0164c5799fda604908a9a3c", B: "https://app.heygen.com/embedded-player/82dcfd447a784279bb6a6024d91f6d49", C: "https://app.heygen.com/embedded-player/232105f5e81443aebafd1f80797e85a5" },
+        5: { A: "https://app.heygen.com/embedded-player/a47f2889172f40539266fb971ff38a5b", B: "https://app.heygen.com/embedded-player/33536f52c0ea406b9315a35291b4bbb4", C: "https://app.heygen.com/embedded-player/2928aca307ef4e39ba4e82cc3b313255" }
+      }
+    };
+
+    let currentLevelIndex = 0;
+    let selectedHero = null;
+    let currentAgentData = null;
+
+    // EFECTO TYPEWRITER
+    function typeWriter(text, elementId, speed = 20) {
+      const element = document.getElementById(elementId);
+      element.innerHTML = "";
+      let i = 0;
+      function type() {
+        if (i < text.length) {
+          element.innerHTML += text.charAt(i);
+          i++;
+          setTimeout(type, speed);
+        } else {
+          element.innerHTML += '<span class="cursor-blink"></span>';
+        }
+      }
+      type();
+    }
+    
+    // INICIAR JUEGO CON AUDIO
+    function initGame() {
+      const audio = bgMusic;
+      if (audio) {
+        audio.volume = 0.3; // Volumen inicial
+
+        if (!isMusicMuted) {
+          // Forzar reproducción con interacción de usuario
+          audio.play().then(() => {
+            if (btnAudio) {
+              btnAudio.classList.add('playing');
+              // Icono de Sonido Activado
+              btnAudio.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                  <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+              `;
+            }
+          }).catch(error => {
+            console.log("Autoplay prevented by browser. User needs to click icon manually.");
+          });
+        } else {
+          audio.pause();
+        }
+      }
+
+      changeScene('scene-briefing');
+    }
+
+    function toggleAudio() {
+      if (!introMusic || !bgMusic || !btnAudio) return;
+
+      // Si actualmente está muteado → lo activamos
+      if (isMusicMuted) {
+        isMusicMuted = false;
+        btnAudio.classList.add('playing');
+        btnAudio.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        `;
+
+        if (currentSceneId === 'scene-title') {
+          // Si estamos en la intro, activamos sólo la intro
+          playIntroMusic();
+        } else {
+          // Si estamos en cualquier otra escena, activamos la de fondo
+          bgMusic.volume = 0.3;
+          bgMusic.play().catch(() => {});
+        }
+
+      } else {
+        // Si está activado → mute global
+        isMusicMuted = true;
+
+        introMusic.pause();
+        bgMusic.pause();
+
+        btnAudio.classList.remove('playing');
+        // Icono de Sonido Muteado
+        btnAudio.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+        `;
+      }
+    }
+
+    // GESTIÓN DEL MODAL DE PERFIL DE AGENTE
+    function showAgentProfile(heroKey) {
+      const data = characters[heroKey];
+      currentAgentData = heroKey;
+      
+      document.getElementById('modal-agent-name').innerText = data.name;
+      document.getElementById('modal-agent-name').className = `font-tech text-3xl mb-1 ${data.colorClass}`;
+      document.getElementById('modal-agent-role').innerText = data.role;
+      
+      const toolsList = document.getElementById('modal-agent-tools');
+      toolsList.innerHTML = data.tools.map(t => `<li>${t}</li>`).join('');
+      
+      const theoryList = document.getElementById('modal-agent-theory');
+      theoryList.innerHTML = data.theory.map(t => `<li>${t}</li>`).join('');
+      
+      // Asignar función al botón de confirmación
+      const confirmBtn = document.getElementById('btn-confirm-agent');
+      confirmBtn.onclick = () => {
+        selectHero(currentAgentData);
+        closeAgentModal();
+      };
+      
+      document.getElementById('agent-profile-modal').style.display = 'flex';
+    }
+    
+    function closeAgentModal() {
+      document.getElementById('agent-profile-modal').style.display = 'none';
+    }
+
+    // Función para revelar el video
+    function revealVideo(type) {
+        // Esta función ahora no es estrictamente necesaria porque el <a> maneja la redirección.
+        // Pero podemos mantenerla si queremos agregar lógica extra antes de salir.
+    }
+
+    // --- MOTOR DEL JUEGO ---
+
+    // 🎵 CONTROL GLOBAL DE MÚSICA
+    const introMusic = document.getElementById('intro-music');
+    const bgMusic    = document.getElementById('bg-music');
+    const btnAudio   = document.getElementById('btn-audio-toggle');
+
+    let isMusicMuted   = false;          // Estado global de mute
+    let currentSceneId = 'scene-title';  // Escena actual
+
+    function playIntroMusic() {
+      if (!introMusic || isMusicMuted) return;
+      introMusic.volume = 0.4;
+      introMusic.play().catch(() => {
+        // Si el navegador bloquea autoplay, se habilita cuando el usuario haga click.
+      });
+    }
+
+    function stopIntroMusic() {
+      if (!introMusic) return;
+      introMusic.pause();
+      introMusic.currentTime = 0;
+    }
+
+    function actualizarIconoAudio() {
+      if (!btnAudio) return;
+
+      if (isMusicMuted) {
+        btnAudio.classList.remove('playing');
+        // Icono de Sonido Muteado
+        btnAudio.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+               viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+        `;
+      } else {
+        btnAudio.classList.add('playing');
+        // Icono de Sonido Activado
+        btnAudio.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+               viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        `;
+      }
+    }
+
+
+// Al cargar la página, intentamos reproducirla en el título
+    
+    // 🔄 Precarga suave de videos Heygen mientras estás en la pantalla inicial
+    function preloadAllVideos() {
+      try {
+        const urls = new Set();
+
+        // Recorrer videos de los niveles (nudos)
+        if (Array.isArray(levels)) {
+          levels.forEach(level => {
+            if (level && level.videoUrl) {
+              if (typeof level.videoUrl === 'string') {
+                urls.add(level.videoUrl);
+              } else if (typeof level.videoUrl === 'object') {
+                Object.values(level.videoUrl).forEach(u => {
+                  if (typeof u === 'string') urls.add(u);
+                });
+              }
+            }
+          });
+        }
+
+        // Recorrer videos de resolución
+        if (typeof resolutionVideos === 'object' && resolutionVideos !== null) {
+          Object.values(resolutionVideos).forEach(heroMap => {
+            if (heroMap && typeof heroMap === 'object') {
+              Object.values(heroMap).forEach(levelMap => {
+                if (levelMap && typeof levelMap === 'object') {
+                  Object.values(levelMap).forEach(u => {
+                    if (typeof u === 'string') urls.add(u);
+                  });
+                }
+              });
+            }
+          });
+        }
+
+        // Crear <link rel="prefetch"> para cada URL
+        urls.forEach(url => {
+          if (typeof url === 'string' && url.startsWith('http')) {
+            const link = document.createElement('link');
+            link.rel = 'prefetch';
+            link.as = 'document';
+            link.href = url;
+            document.head.appendChild(link);
+          }
+        });
+      } catch (e) {
+        console.warn('No se pudo precargar videos:', e);
+      }
+    }
+
+window.addEventListener('load', () => {
+      playIntroMusic();
+      actualizarIconoAudio();
+      preloadAllVideos();
+    });
+
+    window.changeScene = function(sceneId) {
+      document.querySelectorAll('.scene').forEach(s => {
+        s.style.opacity = '0';
+        s.style.transform = 'translateY(20px)'; 
+        setTimeout(() => s.classList.remove('active'), 400);
+      });
+      
+      setTimeout(() => {
+        const target = document.getElementById(sceneId);
+        if (target) {
+          target.classList.add('active');
+          void target.offsetWidth;
+          target.style.opacity = '1';
+          target.style.transform = 'translateY(0)';
+          
+          const hud = document.getElementById('hud');
+          const noHudScenes = ['scene-title', 'scene-briefing', 'scene-select', 'scene-victory', 'scene-gameover'];
+          if (noHudScenes.includes(sceneId)) {
+            hud.classList.add('hidden');
+            hud.classList.remove('flex');
+          } else {
+            hud.classList.remove('hidden');
+            hud.classList.add('flex');
+          }
+          
+          // ACTUALIZAR SCORE FINAL EN VICTORIA
+          if(sceneId === 'scene-victory') {
+             const finalScoreEl = document.getElementById('final-score');
+             const hudScore = document.getElementById('hud-score-text');
+             if(finalScoreEl && hudScore) {
+                 finalScoreEl.innerText = parseInt(hudScore.innerText);
+             }
+
+             // Reiniciar estado visual de victoria (sobre + video)
+             const vEnvelope = document.getElementById('victory-envelope');
+             const vLayer = document.getElementById('victory-video-layer');
+             const vVideo = document.getElementById('victory-video');
+             if (vEnvelope) {
+               vEnvelope.classList.remove('opacity-0', '-translate-y-4', 'scale-95', 'pointer-events-none');
+             }
+             if (vLayer) {
+               vLayer.classList.add('opacity-0', 'scale-90', 'pointer-events-none');
+               vLayer.classList.remove('opacity-100', 'scale-100');
+             }
+             if (vVideo) {
+               try {
+                 vVideo.pause();
+                 vVideo.currentTime = 0;
+               } catch(e) {
+                 console.warn('No se pudo reiniciar el video de victoria:', e);
+               }
+             }
+          }
+
+          if (sceneId === 'scene-gameover') {
+             // Reiniciar estado visual de game over (sobre + video)
+             const gEnvelope = document.getElementById('gameover-envelope');
+             const gLayer = document.getElementById('gameover-video-layer');
+             const gVideo = document.getElementById('gameover-video');
+             if (gEnvelope) {
+               gEnvelope.classList.remove('opacity-0', '-translate-y-4', 'scale-95', 'pointer-events-none');
+             }
+             if (gLayer) {
+               gLayer.classList.add('opacity-0', 'scale-90', 'pointer-events-none');
+               gLayer.classList.remove('opacity-100', 'scale-100');
+             }
+             if (gVideo) {
+               try {
+                 gVideo.pause();
+                 gVideo.currentTime = 0;
+               } catch(e) {
+                 console.warn('No se pudo reiniciar el video de game over:', e);
+               }
+             }
+          }
+
+          // 🔊 CONTROLAR MÚSICA DE INTRO SEGÚN LA ESCENA Y EL MUTE GLOBAL
+          currentSceneId = sceneId;
+
+          if (sceneId === 'scene-title') {
+            if (!isMusicMuted) {
+              playIntroMusic();
+            } else {
+              stopIntroMusic();
+            }
+          } else {
+            stopIntroMusic();
+          }
+        }
+      }, 400);
+    };
+
+    window.selectHero = function(heroKey) {
+      selectedHero = heroKey;
+      const heroData = characters[heroKey];
+      const hudHero = document.getElementById('hud-hero');
+      hudHero.innerText = heroData.name.toUpperCase();
+      hudHero.className = `font-bold text-xs md:text-sm ${heroData.colorClass} drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]`;
+      
+      currentLevelIndex = 0;
+      const scoreText = document.getElementById('hud-score-text');
+      const scoreBar = document.getElementById('hud-score-bar');
+      if(scoreText) scoreText.innerText = "50%";
+      if(scoreBar) {
+          scoreBar.style.width = "50%";
+          scoreBar.className = "h-full bg-yellow-500 transition-all duration-500 relative";
+      }
+
+      loadLevel(0);
+    };
+
+    window.loadLevel = function(index) {
+      if (index >= levels.length) {
+        window.changeScene('scene-victory');
+        return;
+      }
+
+      const levelData = levels[index];
+      const nudoIframe = document.getElementById('nudo-iframe');
+      
+      if (nudoIframe) {
+        nudoIframe.src = "";
+        let url = null;
+        if (levelData.videoUrl) {
+          if (typeof levelData.videoUrl === "string") {
+            url = levelData.videoUrl;
+          } else if (
+            typeof levelData.videoUrl === "object" &&
+            selectedHero &&
+            levelData.videoUrl[selectedHero]
+          ) {
+            url = levelData.videoUrl[selectedHero];
+          }
+        }
+
+        if (url && url.startsWith('http')) {
+          let finalUrl = url;
+          if (!finalUrl.includes('?')) finalUrl += '?autoplay=1';
+          else finalUrl += '&autoplay=1';
+          nudoIframe.src = finalUrl;
+        }
+      }
+      
+      const hudPhase = document.getElementById('hud-phase');
+      if (hudPhase) {
+         hudPhase.innerText = levelData.phaseName;
+         hudPhase.className = `font-bold text-sm ${levelData.themeColor}`;
+      }
+      
+      const levelBadge = document.getElementById('level-badge');
+      if(levelBadge) levelBadge.innerText = `NIVEL ${index + 1}`;
+      const levelTitle = document.getElementById('level-title');
+      if(levelTitle) levelTitle.innerText = levelData.nudo.title;
+      
+      // EFECTO TYPEWRITER
+      typeWriter(levelData.nudo.text, 'nudo-text', 25);
+
+      const btnContainer = document.getElementById('decision-buttons');
+      if (btnContainer) {
+        btnContainer.innerHTML = '';
+        levelData.nudo.options.forEach((opt, i) => {
+          const btn = document.createElement('button');
+          const optionLetter = String.fromCharCode(65 + i);
+          
+          let tagsHtml = '';
+          if (opt.type === 'bueno') {
+            tagsHtml = '<span class="inline-flex items-center gap-1 text-[8px] bg-slate-900 text-emerald-400 px-2 py-0.5 rounded border border-emerald-900/30 uppercase"><span>✅</span><span>Estratégico</span></span>';
+          } else if (opt.type === 'malo') {
+            tagsHtml = '<span class="inline-flex items-center gap-1 text-[8px] bg-slate-900 text-rose-400 px-2 py-0.5 rounded border border-rose-900/30 uppercase"><span>⚠️</span><span>Riesgo Alto</span></span>';
+          } else {
+            tagsHtml = '<span class="inline-flex items-center gap-1 text-[8px] bg-slate-900 text-yellow-400 px-2 py-0.5 rounded border border-yellow-900/30 uppercase"><span>🧩</span><span>Táctico</span></span>';
+          }
+
+          btn.className = "group w-full relative overflow-hidden rounded-lg bg-slate-800/40 border border-slate-700/50 hover:border-cyan-500/50 transition-all duration-200 hover:bg-slate-800 hover:shadow-[0_0_15px_rgba(34,211,238,0.1)] text-left mb-3";
+          
+          btn.innerHTML = `
+              <div class="absolute inset-0 w-1 bg-slate-600 group-hover:bg-cyan-400 transition-colors"></div>
+              <div class="p-4 pl-6 flex flex-col items-start gap-2">
+                  <div class="flex justify-between w-full items-center">
+                      <span class="font-mono text-[10px] text-cyan-600 group-hover:text-cyan-300 tracking-widest">OPCIÓN ${optionLetter}</span>
+                      <div class="flex gap-2 opacity-70 group-hover:opacity-100 transition-opacity">${tagsHtml}</div>
+                  </div>
+                  <span class="font-tech text-lg text-slate-300 group-hover:text-white font-medium leading-tight">
+                      ${opt.text}
+                  </span>
+              </div>
+          `;
+          const optWithLetter = { ...opt, letter: optionLetter };
+          btn.onclick = () => window.showResolution(optWithLetter);
+          btnContainer.appendChild(btn);
+        });
+      }
+      window.changeScene('scene-nudo');
+    };
+
+    window.showResolution = function(option) {
+      // Lógica de Barra de Progreso
+      let currentScoreText = document.getElementById('hud-score-text');
+      let currentScoreVal = parseInt(currentScoreText.innerText) || 50;
+      
+      const mainBody = document.getElementById('main-body');
+
+      // Feedback visual en la pantalla
+      if(option.type === 'bueno') {
+          currentScoreVal = Math.min(100, currentScoreVal + 15);
+          mainBody.classList.add('flash-green');
+      }
+      else if (option.type === 'malo') {
+          currentScoreVal = Math.max(0, currentScoreVal - 25);
+          mainBody.classList.add('flash-red');
+          mainBody.classList.add('shake-screen');
+      }
+      else {
+          currentScoreVal = Math.max(0, currentScoreVal - 5);
+      }
+      
+      // Quitar clases de feedback después de la animación
+      setTimeout(() => {
+         mainBody.classList.remove('flash-green', 'flash-red', 'shake-screen');
+      }, 1000);
+      
+      currentScoreText.innerText = currentScoreVal + "%";
+      const scoreBar = document.getElementById('hud-score-bar');
+      scoreBar.style.width = currentScoreVal + "%";
+      
+      scoreBar.className = `h-full transition-all duration-500 relative ${
+        currentScoreVal > 60 ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 
+        currentScoreVal > 30 ? 'bg-yellow-500' : 'bg-red-600 animate-pulse'
+      }`;
+
+      // Game Over check
+      if(currentScoreVal <= 0) {
+        setTimeout(() => window.changeScene('scene-gameover'), 1500);
+        return;
+      }
+
+      const resBox = document.getElementById('resolution-box');
+      const resBadge = document.getElementById('res-badge');
+      const nextBtn = document.getElementById('btn-next-phase');
+      const retryBtn = document.getElementById('btn-retry');
+      const resTitle = document.getElementById('res-title');
+      const resDesc = document.getElementById('res-desc');
+      const resConcept = document.getElementById('res-concept');
+      const resIframe = document.getElementById('res-iframe');
+      
+      if (resIframe) {
+        const heroKey = selectedHero || 'arquitecta';
+        const levelNumber = currentLevelIndex + 1;
+        const letter = option.letter;
+        let url = null;
+        if (
+          resolutionVideos[heroKey] &&
+          resolutionVideos[heroKey][levelNumber] &&
+          resolutionVideos[heroKey][levelNumber][letter]
+        ) {
+          url = resolutionVideos[heroKey][levelNumber][letter];
+        }
+        
+        if (url) {
+          let finalUrl = url;
+          if (!finalUrl.includes("?")) finalUrl += "?autoplay=1";
+          else finalUrl += "&autoplay=1";
+          resIframe.src = finalUrl;
+        } else {
+           resIframe.src = ""; // Clear if no video found
+        }
+      }
+
+      let titleColor = "text-white";
+      let badgeText = "RESULTADO";
+      let badgeColor = "bg-slate-700";
+      let boxBorder = "border-slate-600";
+
+      if(option.type === 'bueno') {
+        titleColor = "text-emerald-400";
+        badgeText = "ÉXITO TÁCTICO";
+        badgeColor = "bg-emerald-600";
+        boxBorder = "border-emerald-500";
+        
+        if(nextBtn) {
+            nextBtn.classList.remove('hidden');
+            nextBtn.innerText = "AVANZAR FASE >>";
+            nextBtn.onclick = () => {
+               if (currentLevelIndex + 1 >= levels.length) window.changeScene('scene-victory');
+               else {
+                 currentLevelIndex++;
+                 loadLevel(currentLevelIndex);
+               }
+            };
+        }
+        if(retryBtn) retryBtn.classList.add('hidden');
+        
+      } else if(option.type === 'malo') {
+        titleColor = "text-rose-500";
+        badgeText = "FALLO CRÍTICO";
+        badgeColor = "bg-rose-600";
+        boxBorder = "border-rose-500";
+        
+        if(nextBtn) nextBtn.classList.add('hidden');
+        if(retryBtn) {
+            retryBtn.classList.remove('hidden');
+            retryBtn.innerText = "REINTENTAR NIVEL";
+            retryBtn.onclick = () => loadLevel(currentLevelIndex);
+        }
+        
+      } else { 
+        titleColor = "text-yellow-400";
+        badgeText = "IMPACTO BAJO";
+        badgeColor = "bg-yellow-600";
+        boxBorder = "border-yellow-500";
+        
+        if(nextBtn) {
+            nextBtn.classList.remove('hidden');
+            nextBtn.innerText = "AVANZAR (RIESGO) >>";
+            nextBtn.onclick = () => {
+               if (currentLevelIndex + 1 >= levels.length) window.changeScene('scene-victory');
+               else {
+                 currentLevelIndex++;
+                 loadLevel(currentLevelIndex);
+               }
+            };
+        }
+        if(retryBtn) retryBtn.classList.add('hidden');
+      }
+
+      if(resBox) resBox.className = `w-full max-w-5xl bg-slate-900/95 border-2 ${boxBorder} rounded-2xl p-8 md:p-10 relative overflow-hidden shadow-2xl mt-12 md:mt-0`;
+      if(resTitle) { resTitle.className = `font-tech text-3xl md:text-5xl font-bold mb-4 leading-tight ${titleColor}`; resTitle.innerText = option.feedbackTitle; }
+      if(resDesc) resDesc.innerText = option.feedbackText;
+      if(resConcept) resConcept.innerText = option.concept;
+      if(resBadge) { resBadge.innerText = badgeText; resBadge.className = `absolute -top-3 -right-3 text-white font-arcade text-[9px] px-3 py-1 rounded border border-slate-900 shadow-lg uppercase ${badgeColor}`; }
+
+      window.changeScene('scene-resolution');
+    };
+  
+  // --- EFECTO "ABRIR MENSAJE" EN VICTORIA ---
+  function openVictoryMessage() {
+    const envelope = document.getElementById('victory-envelope');
+    const layer    = document.getElementById('victory-video-layer');
+    const video    = document.getElementById('victory-video');
+
+    if (!envelope || !layer || !video) return;
+
+    envelope.classList.add('opacity-0', '-translate-y-4', 'scale-95', 'pointer-events-none');
+
+    layer.classList.remove('pointer-events-none');
+    layer.classList.remove('opacity-0', 'scale-90');
+    layer.classList.add('opacity-100', 'scale-100');
+
+    try {
+      video.play();
+    } catch (e) {
+      console.warn('No se pudo reproducir automáticamente el video de victoria:', e);
+    }
+  }
+
+  // --- EFECTO "ABRIR MENSAJE" EN GAME OVER ---
+  function openGameoverMessage() {
+    const envelope = document.getElementById('gameover-envelope');
+    const layer    = document.getElementById('gameover-video-layer');
+    const video    = document.getElementById('gameover-video');
+
+    if (!envelope || !layer || !video) return;
+
+    envelope.classList.add('opacity-0', '-translate-y-4', 'scale-95', 'pointer-events-none');
+
+    layer.classList.remove('pointer-events-none');
+    layer.classList.remove('opacity-0', 'scale-90');
+    layer.classList.add('opacity-100', 'scale-100');
+
+    try {
+      video.play();
+    } catch (e) {
+      console.warn('No se pudo reproducir automáticamente el video de game over:', e);
+    }
+  }
+
+</script>
+</body>
+</html>
